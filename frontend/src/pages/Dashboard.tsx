@@ -72,6 +72,7 @@ export default function Dashboard() {
   const historyQuery = useQuery({
     queryKey: ["history", ticker, range],
     queryFn: () => api.history(ticker, range).then((r) => r.data as { date: string; open: number; high: number; low: number; close: number; volume?: number }[]),
+    retry: 1,
     refetchInterval: range === "1D" ? 15_000 : 60_000,
     refetchIntervalInBackground: false,
   });
@@ -158,11 +159,16 @@ export default function Dashboard() {
           </div>
           <div className="px-2 pb-3 pt-4 sm:px-4">
             {historyQuery.isLoading ? (
-              <div className="h-[300px] animate-pulse rounded-xl bg-bgElev/70" />
+              <div className="flex h-[300px] flex-col items-center justify-center gap-3 rounded-xl bg-bgElev/30 text-sm text-text2" role="status" aria-live="polite">
+                <div className="h-7 w-7 animate-spin rounded-full border-2 border-amber/30 border-t-amber" />
+                <p>Loading {ticker} price history ({range})…</p>
+                <p className="text-xs">Waiting for the configured market-data provider.</p>
+              </div>
             ) : historyQuery.isError ? (
               <div className="flex h-[300px] flex-col items-center justify-center gap-2 text-center text-sm text-text2">
                 <BarChart3 size={28} className="text-amber" />
-                <p>Could not load historical prices for {ticker}.</p>
+                <p>Could not load historical prices for {ticker} ({range}).</p>
+                <p className="max-w-md text-xs">The data provider may be unavailable, rejecting its API key, or limiting this request. Check the backend logs for the exact cause.</p>
                 <button onClick={() => historyQuery.refetch()} className="text-amber hover:underline">Try again</button>
               </div>
             ) : history.length ? (
