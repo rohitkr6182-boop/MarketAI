@@ -22,3 +22,9 @@ def test_bollinger_bands_ordering():
         if u is None:
             continue
         assert l <= m <= u
+
+
+def test_rsi_flat_prices_is_neutral():
+    result = technical.rsi([100] * 30, period=14)
+    assert result[14] == 50
+    assert result[-1] == 50
