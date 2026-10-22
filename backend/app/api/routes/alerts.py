@@ -22,6 +22,8 @@ def create_alert(payload: AlertCreate, db: Session = Depends(get_db), user: User
     if not company:
         raise HTTPException(status_code=404, detail="Unknown ticker")
     stock = db.query(Stock).filter_by(company_id=company.id).first()
+    if not stock:
+        raise HTTPException(status_code=400, detail="This company is not set up for alerts yet.")
     alert = Alert(user_id=user.id, stock_id=stock.id, alert_type=payload.alert_type,
                   threshold=payload.threshold, direction=payload.direction)
     db.add(alert); db.commit(); db.refresh(alert)
