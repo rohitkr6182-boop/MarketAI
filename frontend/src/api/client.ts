@@ -2,6 +2,7 @@ import axios from "axios";
 
 const client = axios.create({
   baseURL: "/api",
+  timeout: 25_000,
   headers: { Authorization: "Bearer demo" },
 });
 
