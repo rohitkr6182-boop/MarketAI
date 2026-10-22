@@ -22,6 +22,10 @@ UNIVERSE = {
     "INFY": {"name": "Infosys Ltd", "exchange": "NSE", "sector": "IT Services", "ccy": "INR", "base": 1620},
     "RELIANCE": {"name": "Reliance Industries", "exchange": "NSE", "sector": "Energy", "ccy": "INR", "base": 2870},
     "HDFCBANK": {"name": "HDFC Bank", "exchange": "NSE", "sector": "Banking", "ccy": "INR", "base": 1690},
+    "ICICIBANK": {"name": "ICICI Bank", "exchange": "NSE", "sector": "Banking", "ccy": "INR", "base": 1280},
+    "BHARTIARTL": {"name": "Bharti Airtel", "exchange": "NSE", "sector": "Telecom", "ccy": "INR", "base": 1780},
+    "ITC": {"name": "ITC Ltd", "exchange": "NSE", "sector": "FMCG", "ccy": "INR", "base": 460},
+    "LT": {"name": "Larsen & Toubro", "exchange": "NSE", "sector": "Infrastructure", "ccy": "INR", "base": 3650},
     "AAPL": {"name": "Apple Inc.", "exchange": "NASDAQ", "sector": "Technology", "ccy": "USD", "base": 228},
     "MSFT": {"name": "Microsoft Corp.", "exchange": "NASDAQ", "sector": "Technology", "ccy": "USD", "base": 430},
     "NVDA": {"name": "NVIDIA Corp.", "exchange": "NASDAQ", "sector": "Technology", "ccy": "USD", "base": 118},
@@ -86,7 +90,7 @@ class MockMarketDataProvider(MarketDataProvider):
         info = UNIVERSE.get(ticker.upper())
         if not info:
             raise ValueError(f"Unknown ticker: {ticker}")
-        points = {"1D": 1, "1W": 7, "1M": 22, "6M": 130, "1Y": 252, "5Y": 1260, "MAX": 1500}.get(range_key, 130)
+        points = {"1D": 1, "1W": 7, "1M": 22, "3M": 65, "6M": 130, "1Y": 252, "5Y": 1260, "MAX": 1500}.get(range_key, 130)
         closes = _walk(info["base"], points, 0.018, ticker.upper())
         out, today = [], datetime.utcnow()
         for i, c in enumerate(closes):
