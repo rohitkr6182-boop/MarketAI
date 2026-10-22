@@ -1,5 +1,6 @@
 """Alpaca market-data provider for US stocks."""
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -66,16 +67,28 @@ class AlpacaMarketDataProvider(MarketDataProvider):
         }
 
     def get_history(self, ticker: str, range_key: str) -> list[dict]:
-        days = {
-            "1D": 1, "1W": 7, "1M": 31, "3M": 93, "6M": 186,
-            "1Y": 366, "5Y": 1826, "MAX": 3650,
-        }.get(range_key.strip().upper(), 186)
+        key = range_key.strip().upper()
         end = datetime.now(timezone.utc)
-        start = end - timedelta(days=days)
+
+        if key == "1D":
+            # Use one-minute bars for the current US trading day. Alpaca
+            # accepts ISO timestamps with offsets and returns available IEX bars.
+            now_ny = datetime.now(ZoneInfo("America/New_York"))
+            start_ny = now_ny.replace(hour=0, minute=0, second=0, microsecond=0)
+            start = start_ny.astimezone(timezone.utc)
+            timeframe = "1Min"
+        else:
+            days = {
+                "1W": 7, "1M": 31, "3M": 93, "6M": 186,
+                "1Y": 366, "5Y": 1826, "MAX": 3650,
+            }.get(key, 186)
+            start = end - timedelta(days=days)
+            timeframe = "1Day"
+
         result = self._get(
             f"/v2/stocks/{ticker.strip().upper()}/bars",
             {
-                "timeframe": "1Day",
+                "timeframe": timeframe,
                 "start": start.isoformat(),
                 "end": end.isoformat(),
                 "limit": 10000,
