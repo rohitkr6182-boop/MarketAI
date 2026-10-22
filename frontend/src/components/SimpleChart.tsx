@@ -43,8 +43,6 @@ export default function SimpleChart({
   const volumeBottom = 342;
   const dateY = 366;
   const plotWidth = width - left - right;
-  const intraday = range.toUpperCase() === "1D";
-
   if (!data.length) {
     return (
       <div className="flex h-[390px] items-center justify-center text-sm text-text2">
@@ -64,6 +62,7 @@ export default function SimpleChart({
     );
   }
 
+  const intraday = range.toUpperCase() === "1D" && valid.some((item) => item.date.includes("T"));
   const prices = valid.map((item) => item.close);
   const rawMin = Math.min(...prices);
   const rawMax = Math.max(...prices);
