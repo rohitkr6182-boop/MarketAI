@@ -76,6 +76,8 @@ def answer(db: Session, user_id: int, message: str, context_ticker: str | None =
 
     if any(k in text for k in ["revenue", "financial", "profit", "eps", "earnings"]):
         data = use("get_financials", tools.get_financials, ticker)
+        if not data:
+            return {"reply": f"No financial statements are available for {ticker} from the configured data source.", "tools_used": used_tools, "data": []}
         latest = data[-1]
         reply = (f"{ticker} latest reported period ({latest['fiscal_period']}): revenue "
                   f"{latest['revenue']:,.0f}, net income {latest['net_income']:,.0f}, EPS {latest['eps']}.")
