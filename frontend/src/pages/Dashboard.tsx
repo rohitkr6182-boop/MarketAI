@@ -12,7 +12,8 @@ import SimpleChart from "../components/SimpleChart";
 import type { IndexQuote, Portfolio } from "../types";
 
 const ranges = ["1D", "1W", "1M", "3M", "6M", "1Y"];
-const symbols = ["TCS", "RELIANCE", "AAPL", "NVDA"];
+const symbols = ["TCS", "INFY", "RELIANCE", "HDFCBANK", "AAPL", "MSFT", "NVDA", "GOOGL"];
+const indianStocks = ["TCS", "INFY", "RELIANCE", "HDFCBANK"];
 
 const money = (value?: number) =>
   value == null ? "—" : value.toLocaleString("en-IN", { maximumFractionDigits: 2 });
@@ -55,6 +56,14 @@ export default function Dashboard() {
     queryKey: ["portfolio", "INR"],
     queryFn: () => api.portfolio("INR").then((r) => r.data as Portfolio),
   });
+  const indianStocksQuery = useQuery({
+    queryKey: ["dashboard", "indian-stocks"],
+    queryFn: async () => Promise.all(indianStocks.map(async (symbol) => {
+      const response = await api.quote(symbol);
+      return response.data as { ticker: string; name: string; price: number; change_pct: number; currency: string; source?: string };
+    })),
+    refetchInterval: 15_000,
+  });
   const historyQuery = useQuery({
     queryKey: ["history", ticker, range],
     queryFn: () => api.history(ticker, range).then((r) => r.data as { date: string; close: number }[]),
@@ -70,7 +79,7 @@ export default function Dashboard() {
   const greeting = new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening";
 
   const refreshAll = async () => {
-    await Promise.all([indicesQuery.refetch(), portfolioQuery.refetch(), historyQuery.refetch()]);
+    await Promise.all([indicesQuery.refetch(), portfolioQuery.refetch(), indianStocksQuery.refetch(), historyQuery.refetch()]);
     setLastUpdated(new Date());
   };
 
@@ -122,6 +131,46 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[1, 2, 3, 4].map((item) => <div key={item} className="h-28 animate-pulse rounded-2xl border border-border bg-bgCard/80" />)}
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="section-kicker"><Activity size={14} /> NSE STOCKS</div>
+            <h2 className="mt-1 text-lg font-semibold text-text">Popular Indian stocks</h2>
+            <p className="mt-1 text-xs text-text2">Indian equities · INR prices · demo data unless a live provider is configured</p>
+          </div>
+          <Link to="/markets" className="text-xs font-medium text-amber hover:text-amber/80">Browse markets ↗</Link>
+        </div>
+        {indianStocksQuery.isError ? (
+          <div className="rounded-xl border border-border bg-bgCard p-4 text-sm text-text2">
+            Indian stock quotes could not load. Check that the backend is running, then use Refresh.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {indianStocks.map((symbol) => {
+              const quote = (indianStocksQuery.data ?? []).find((item) => item.ticker === symbol);
+              const up = (quote?.change_pct ?? 0) >= 0;
+              return (
+                <Link key={symbol} to={`/stocks/${symbol}`} className="stat-card group block">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-sm font-semibold text-text">{symbol}</div>
+                      <div className="mt-1 min-h-8 text-xs leading-4 text-text2">{quote?.name ?? (symbol === "TCS" ? "Tata Consultancy Services" : symbol === "INFY" ? "Infosys" : symbol === "RELIANCE" ? "Reliance Industries" : "HDFC Bank")}</div>
+                    </div>
+                    <span className="rounded-lg bg-white/5 px-2 py-1 text-[10px] font-semibold tracking-wide text-text2">NSE</span>
+                  </div>
+                  <div className="mt-4 text-xl font-semibold tabular-nums text-text">{quote ? `₹${money(quote.price)}` : indianStocksQuery.isLoading ? "Loading…" : "—"}</div>
+                  <div className={`mt-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold ${up ? "bg-up/10 text-up" : "bg-down/10 text-down"}`}>
+                    {quote ? (up ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />) : null}
+                    {quote ? `${up ? "+" : ""}${quote.change_pct.toFixed(2)}%` : "Quote unavailable"}
+                  </div>
+                  <div className="mt-3 text-[11px] text-text2 transition group-hover:text-amber">View stock details ↗</div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </section>
