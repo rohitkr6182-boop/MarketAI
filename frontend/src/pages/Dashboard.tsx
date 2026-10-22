@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity, ArrowDownRight, ArrowUpRight, BriefcaseBusiness, Clock3,
@@ -58,10 +58,15 @@ export default function Dashboard() {
   });
   const indianStocksQuery = useQuery({
     queryKey: ["dashboard", "indian-stocks"],
-    queryFn: async () => Promise.all(indianStocks.map(async (symbol) => {
-      const response = await api.quote(symbol);
-      return response.data as { ticker: string; name: string; price: number; change_pct: number; currency: string; source?: string };
-    })),
+    queryFn: async () => {
+      const results = await Promise.allSettled(indianStocks.map(async (symbol) => {
+        const response = await api.quote(symbol);
+        return response.data as { ticker: string; name: string; price: number; change_pct: number | null; currency: string; source?: string };
+      }));
+      return results
+        .filter((result): result is PromiseFulfilledResult<{ ticker: string; name: string; price: number; change_pct: number | null; currency: string; source?: string }> => result.status === "fulfilled")
+        .map((result) => result.value);
+    },
     refetchInterval: 15_000,
   });
   const historyQuery = useQuery({
@@ -70,7 +75,7 @@ export default function Dashboard() {
     refetchInterval: 60_000,
   });
 
-  const portfolio = portfolioQuery.data;
+  useEffect(() => {\n    if (historyQuery.dataUpdatedAt || indianStocksQuery.dataUpdatedAt || indicesQuery.dataUpdatedAt) {\n      setLastUpdated(new Date(Math.max(historyQuery.dataUpdatedAt, indianStocksQuery.dataUpdatedAt, indicesQuery.dataUpdatedAt)));\n    }\n  }, [historyQuery.dataUpdatedAt, indianStocksQuery.dataUpdatedAt, indicesQuery.dataUpdatedAt]);\n\n  const portfolio = portfolioQuery.data;
   const history = Array.isArray(historyQuery.data) ? historyQuery.data : [];
   const latest = history.at(-1);
   const first = history[0];
@@ -222,7 +227,7 @@ export default function Dashboard() {
                   <div className="mt-4 text-xl font-semibold tabular-nums text-text">{quote ? `₹${money(quote.price)}` : indianStocksQuery.isLoading ? "Loading…" : "—"}</div>
                   <div className={`mt-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold ${up ? "bg-up/10 text-up" : "bg-down/10 text-down"}`}>
                     {quote ? (up ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />) : null}
-                    {quote ? `${up ? "+" : ""}${quote.change_pct.toFixed(2)}%` : "Quote unavailable"}
+                    {quote ? `${up ? "+" : ""}${(quote.change_pct ?? 0).toFixed(2)}%` : "Quote unavailable"}
                   </div>
                   <div className="mt-3 text-[11px] text-text2 transition group-hover:text-amber">View stock details ↗</div>
                 </Link>
