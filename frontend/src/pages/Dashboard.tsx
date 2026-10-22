@@ -72,7 +72,8 @@ export default function Dashboard() {
   const historyQuery = useQuery({
     queryKey: ["history", ticker, range],
     queryFn: () => api.history(ticker, range).then((r) => r.data as { date: string; open: number; high: number; low: number; close: number; volume?: number }[]),
-    refetchInterval: 60_000,
+    refetchInterval: range === "1D" ? 15_000 : 60_000,
+    refetchIntervalInBackground: false,
   });
 
   useEffect(() => {
@@ -147,7 +148,7 @@ export default function Dashboard() {
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-xs text-text2">Historical close • Not a live quote</p>
+              <p className="mt-1 text-xs text-text2">{range === "1D" ? "Latest intraday bar · refreshes every 15 seconds during market hours" : "Historical closing prices · refreshes every minute"}</p>
             </div>
             <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-bg/60 p-1">
               {ranges.map((item) => (
@@ -165,7 +166,7 @@ export default function Dashboard() {
                 <button onClick={() => historyQuery.refetch()} className="text-amber hover:underline">Try again</button>
               </div>
             ) : history.length ? (
-              <SimpleChart data={history} />
+              <SimpleChart data={history} range={range} />
             ) : (
               <div className="flex h-[300px] flex-col items-center justify-center gap-2 text-center text-sm text-text2">
                 <BarChart3 size={28} className="text-amber" />
@@ -174,7 +175,7 @@ export default function Dashboard() {
             )}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 px-5 py-3">
-            <span className="text-xs text-text2">Chart updates when history refreshes; real-time ticks require a configured streaming feed.</span>
+            <span className="text-xs text-text2">Chart refreshes automatically; 1D uses intraday bars where the provider supports them. Prices may be delayed by the data provider.</span>
             <Link to={`/stocks/${ticker}`} className="inline-flex items-center gap-1 text-xs font-semibold text-amber hover:text-amber/80">View {ticker} details <ArrowUpRight size={13} /></Link>
           </div>
         </div>
