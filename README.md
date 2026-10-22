@@ -17,11 +17,14 @@ network access to install dependencies). Before you treat anything here as
 "done," run it yourself following Section 3 and work through Section 7
 (Known gaps / next steps).
 
-What's implemented as real, working code:
-- FastAPI backend: auth (register/login + a `Bearer demo` dev shortcut),
-  all REST endpoints listed in the spec, SQLAlchemy models for every table,
-  a provider abstraction layer (`app/services/providers/`) with a
-  deterministic **mock** market/news/financials/analyst/FX provider.
+What's implemented:
+- FastAPI backend: auth (register/login + a `Bearer demo` development shortcut),
+  REST endpoints, SQLAlchemy models, and a provider abstraction layer.
+- Regional market routing: Tapetide for supported Indian equities and Alpaca
+  for US equities when valid credentials are configured; missing credentials
+  fall back to the clearly labelled deterministic mock quote/history provider.
+- Mock news, financial statements, analyst ratings, FX, and index data remain
+  demo implementations unless a separate provider is integrated.
 - Paper trading engine (`app/services/portfolio_service.py`) — buy by qty
   or amount, sell with holdings validation, average-price recalculation,
   P/L, portfolio summary — with a pytest suite covering the exact edge
@@ -40,8 +43,10 @@ What's implemented as real, working code:
   watchlist, AI chat.
 
 What's intentionally stubbed / not built:
-- Real market-data, news, and analyst-rating providers (you'll add one —
-  see Section 5).
+- Live index feeds, full symbol search, company profiles, financial statements,
+  analyst ratings, news, and FX are not supplied by the Tapetide/Alpaca quote
+  adapters in this version. Those areas use mock/demo data or a limited search
+  catalog; do not treat them as verified live company fundamentals.
 - WebSockets / live push (the frontend currently polls).
 - Background workers for alerts (alert *records* are stored; nothing
   currently evaluates and fires them yet — see Section 7).
@@ -125,10 +130,12 @@ so the app is fully runnable with an empty `.env`.
 ---
 
 ## 5. Adding a real data provider
-1. Implement the relevant interface from `app/services/providers/base.py`
-   in a new file (e.g. `providers/twelvedata_provider.py`).
-2. Register it in `providers/registry.py`'s `_MARKET_MAP` (etc).
-3. Set `MARKET_DATA_PROVIDER=twelvedata` and `MARKET_DATA_API_KEY=...` in `.env`.
+1. Review `app/services/providers/base.py` and the existing Tapetide/Alpaca adapters.
+2. Configure `INDIA_MARKET_DATA_PROVIDER` / `TAPETIDE_API_KEY` and
+   `US_MARKET_DATA_PROVIDER` / `ALPACA_API_KEY` / `ALPACA_API_SECRET_KEY`
+   in `.env`. Keep `.env` private and never commit credentials.
+3. Add separate provider adapters for indices, company fundamentals, analyst ratings,
+   news, and FX if you need verified live data for those sections.
 
 Suggested real providers to evaluate (verify current pricing/limits/ToS
 yourself before committing — this list is a starting point, not a
@@ -152,8 +159,8 @@ never guarantees of future performance.
 ---
 
 ## 7. Known gaps / suggested next steps
-1. Run `pytest` and `npm run build` yourself and fix whatever your
-   environment surfaces — this scaffold was syntax-checked, not executed.
+1. Run the automated GitHub Actions checks for backend tests and the frontend build.
+   Also test live provider calls locally with valid keys; CI intentionally uses mock data.
 2. Add Alembic migrations before the schema stabilizes further.
 3. Implement the alert-evaluation background job (APScheduler or a Redis
    queue) that reads `alerts` and calls the market-data provider on a
