@@ -95,7 +95,7 @@ export default function Dashboard() {
   const history = Array.isArray(historyQuery.data) ? historyQuery.data : [];
   const latest = history[history.length - 1];
   const first = history[0];
-  const chartChange = latest && first ? latest.close - first.close : undefined;
+  const chartChange = history.length > 1 && latest && first ? latest.close - first.close : undefined;
   const chartChangePct = chartChange != null && first?.close ? (chartChange / first.close) * 100 : undefined;
   const greeting = new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening";
 
@@ -148,7 +148,7 @@ export default function Dashboard() {
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-xs text-text2">{range === "1D" ? "Latest intraday bar · refreshes every 15 seconds during market hours" : "Historical closing prices · refreshes every minute"}</p>
+              <p className="mt-1 text-xs text-text2">{range === "1D" && !indianStocks.includes(ticker) ? "Latest available intraday bars · refreshes every 15 seconds while the page is active" : range === "1D" ? "Daily provider data only for this Indian ticker; intraday history is not available from the current integration" : "Historical closing prices · refreshes every minute"}</p>
             </div>
             <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-bg/60 p-1">
               {ranges.map((item) => (
