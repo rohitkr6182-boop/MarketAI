@@ -84,7 +84,9 @@ export default function Dashboard() {
     if (updatedAt > 0) {
       setLastUpdated(new Date(updatedAt));
     }
-  }, [historyQuery.dataUpdatedAt, indianStocksQuery.dataUpdatedAt, indicesQuery.dataUpdatedAt]);\n\n  const portfolio = portfolioQuery.data;
+  }, [historyQuery.dataUpdatedAt, indianStocksQuery.dataUpdatedAt, indicesQuery.dataUpdatedAt]);
+
+  const portfolio = portfolioQuery.data;
   const history = Array.isArray(historyQuery.data) ? historyQuery.data : [];
   const latest = history.at(-1);
   const first = history[0];
