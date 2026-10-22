@@ -43,10 +43,15 @@ def _market_key(ticker=None, region=None):
     if normalized_ticker.endswith((".NS", ".BO")) or base_ticker in INDIAN_TICKERS:
         return settings.INDIA_MARKET_DATA_PROVIDER.lower()
 
+    # A legacy MARKET_DATA_PROVIDER in an old .env must not override the
+    # separate India/US provider settings. Honor it only when both regional
+    # settings are still the mock defaults (legacy single-provider setup).
+    india_provider = settings.INDIA_MARKET_DATA_PROVIDER.lower()
+    us_provider = settings.US_MARKET_DATA_PROVIDER.lower()
+    if india_provider != "mock" or us_provider != "mock":
+        return us_provider
     legacy = (getattr(settings, "MARKET_DATA_PROVIDER", "mock") or "mock").lower()
-    if legacy not in {"", "mock"}:
-        return legacy
-    return settings.US_MARKET_DATA_PROVIDER.lower()
+    return legacy if legacy else "mock"
 
 
 @lru_cache
