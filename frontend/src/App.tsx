@@ -8,6 +8,7 @@ import Portfolio from "./pages/Portfolio";
 import Watchlist from "./pages/Watchlist";
 import NewsPage from "./pages/NewsPage";
 import AIAssistant from "./pages/AIAssistant";
+import Screener from "./pages/Screener";
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/markets" element={<Markets />} />
+          <Route path="/screener" element={<Screener />} />
           <Route path="/global" element={<GlobalMarkets />} />
           <Route path="/stocks/:ticker" element={<Stock />} />
           <Route path="/portfolio" element={<Portfolio />} />
