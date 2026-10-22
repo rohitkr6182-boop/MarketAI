@@ -16,6 +16,8 @@ def test_market_provider_routes_indian_and_us_symbols(monkeypatch):
 
 
 def test_missing_vendor_keys_fall_back_to_mock_provider(monkeypatch):
+    monkeypatch.setattr(settings, "INDIA_MARKET_DATA_PROVIDER", "tapetide")
+    monkeypatch.setattr(settings, "US_MARKET_DATA_PROVIDER", "alpaca")
     monkeypatch.setattr(settings, "TAPETIDE_API_KEY", "")
     monkeypatch.setattr(settings, "ALPACA_API_KEY", "")
     monkeypatch.setattr(settings, "ALPACA_API_SECRET_KEY", "")
