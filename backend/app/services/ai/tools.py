@@ -15,11 +15,11 @@ from app.services.portfolio_service import portfolio_summary, get_or_create_acco
 
 
 def get_stock_quote(ticker: str) -> dict:
-    return get_market_data_provider().get_quote(ticker)
+    return get_market_data_provider(ticker=ticker).get_quote(ticker)
 
 
 def get_historical_prices(ticker: str, range_key: str = "6M") -> list[dict]:
-    return get_market_data_provider().get_history(ticker, range_key)
+    return get_market_data_provider(ticker=ticker).get_history(ticker, range_key)
 
 
 def get_company_profile(ticker: str) -> dict:
@@ -35,11 +35,11 @@ def get_company_news(ticker: str) -> list[dict]:
 
 
 def get_market_indices(region: str | None = None) -> list[dict]:
-    return get_market_data_provider().get_indices(region)
+    return get_market_data_provider(region=region).get_indices(region)
 
 
 def get_sector_data(ticker: str) -> dict:
-    quote = get_market_data_provider().get_quote(ticker)
+    quote = get_market_data_provider(ticker=ticker).get_quote(ticker)
     return {"sector": quote["sector"]}
 
 
@@ -49,6 +49,8 @@ def get_analyst_ratings(ticker: str) -> dict | None:
 
 def calculate_technical_indicators(ticker: str) -> dict:
     hist = get_historical_prices(ticker, "6M")
+    if not hist:
+        raise ValueError(f"No historical data available for {ticker}")
     closes = [h["close"] for h in hist]
     highs = [h["high"] for h in hist]
     lows = [h["low"] for h in hist]

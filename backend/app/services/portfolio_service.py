@@ -32,7 +32,7 @@ def get_or_create_account(db: Session, user_id: int, currency: str, default_cash
 
 
 def _current_price(ticker: str) -> float:
-    return get_market_data_provider().get_quote(ticker)["price"]
+    return get_market_data_provider(ticker=ticker).get_quote(ticker)["price"]
 
 
 def buy(db: Session, account: PaperAccount, stock_id: int, ticker: str,
@@ -99,7 +99,6 @@ def sell(db: Session, account: PaperAccount, stock_id: int, ticker: str, quantit
 
 def portfolio_summary(db: Session, account: PaperAccount) -> dict:
     holdings = db.query(Holding).filter_by(account_id=account.id).all()
-    provider = get_market_data_provider()
     rows, invested, market_value = [], 0.0, 0.0
 
     for h in holdings:
@@ -108,7 +107,7 @@ def portfolio_summary(db: Session, account: PaperAccount) -> dict:
         from app.models.market import Stock, Company
         stock = db.query(Stock).filter_by(id=h.stock_id).first()
         company = db.query(Company).filter_by(id=stock.company_id).first()
-        price = provider.get_quote(company.ticker)["price"]
+        price = get_market_data_provider(ticker=company.ticker).get_quote(company.ticker)["price"]
         mv = round(price * h.quantity, 2)
         cost = round(h.avg_buy_price * h.quantity, 2)
         invested += cost

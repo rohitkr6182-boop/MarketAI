@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 
 interface Msg { role: "user" | "assistant"; content: string; tools?: string[] }
@@ -9,9 +9,15 @@ export default function AIAssistant() {
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const messagesRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = messagesRef.current;
+    if (element) element.scrollTo({ top: element.scrollHeight, behavior: "smooth" });
+  }, [messages, sending]);
 
   async function send() {
-    if (!input.trim()) return;
+    if (!input.trim() || sending) return;
     const userMsg: Msg = { role: "user", content: input };
     setMessages((m) => [...m, userMsg]);
     setInput("");
@@ -20,7 +26,8 @@ export default function AIAssistant() {
       const res = await api.chat(userMsg.content);
       setMessages((m) => [...m, { role: "assistant", content: res.data.reply, tools: res.data.tools_used }]);
     } catch (e: any) {
-      setMessages((m) => [...m, { role: "assistant", content: "Sorry, something went wrong reaching the AI service." }]);
+      const detail = e?.response?.data?.detail;
+      setMessages((m) => [...m, { role: "assistant", content: detail || "Sorry, the assistant could not retrieve the requested data. Check the backend and provider configuration, then retry." }]);
     } finally {
       setSending(false);
     }
@@ -29,7 +36,7 @@ export default function AIAssistant() {
   return (
     <div className="flex flex-col gap-3 max-w-2xl">
       <h1 className="text-lg font-semibold">AI Market Assistant</h1>
-      <div className="card flex flex-col gap-3 h-[500px] overflow-y-auto">
+      <div ref={messagesRef} aria-live="polite" className="card flex flex-col gap-3 h-[500px] overflow-y-auto">
         {messages.map((m, i) => (
           <div key={i} className={m.role === "user" ? "self-end bg-amber/20 text-amber rounded-lg px-3 py-2 max-w-[80%]" : "self-start bg-white/5 rounded-lg px-3 py-2 max-w-[80%]"}>
             <div className="text-sm">{m.content}</div>
@@ -52,7 +59,7 @@ export default function AIAssistant() {
         </button>
       </div>
       <p className="text-[10px] text-text2">
-        AI responses are generated from retrieved market data, not guarantees of future performance.
+        The assistant uses retrieved provider data where available. News and company fundamentals may be demo data; answers are not guarantees of future performance.
       </p>
     </div>
   );

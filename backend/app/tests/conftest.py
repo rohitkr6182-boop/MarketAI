@@ -6,6 +6,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
+from app.core.config import settings
+from app.services.providers.registry import _provider_for_key
 from app.models.market import Exchange, Sector, Company, Stock
 from app.models.trading import PaperAccount
 
@@ -38,3 +40,14 @@ def inr_account(db):
     acct = PaperAccount(user_id=1, currency="INR", cash_balance=1_000_000)
     db.add(acct); db.commit(); db.refresh(acct)
     return acct
+
+
+@pytest.fixture(autouse=True)
+def use_mock_market_providers_in_tests(monkeypatch):
+    """Keep tests deterministic and prevent accidental calls to paid/live APIs."""
+    monkeypatch.setattr(settings, "MARKET_DATA_PROVIDER", "mock")
+    monkeypatch.setattr(settings, "INDIA_MARKET_DATA_PROVIDER", "mock")
+    monkeypatch.setattr(settings, "US_MARKET_DATA_PROVIDER", "mock")
+    _provider_for_key.cache_clear()
+    yield
+    _provider_for_key.cache_clear()

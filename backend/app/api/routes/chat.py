@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+import httpx
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -13,7 +14,14 @@ router = APIRouter(prefix="/api", tags=["chat"])
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(payload: ChatRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    result = answer(db, user.id, payload.message, payload.context_ticker)
+    try:
+        result = answer(db, user.id, payload.message, payload.context_ticker)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="The market-data provider could not answer this request. Please retry shortly.")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
     db.add(AIConversation(user_id=user.id, role="user", content=payload.message,
                            context_ticker=payload.context_ticker))
