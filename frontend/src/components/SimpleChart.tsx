@@ -73,8 +73,8 @@ export default function SimpleChart({
   const min = rawMin - spread * 0.12;
   const max = rawMax + spread * 0.12;
   const y = (value: number) => priceBottom - ((value - min) / (max - min)) * (priceBottom - top);
-  const slot = plotWidth / Math.max(valid.length - 1, 1);
-  const x = (index: number) => left + slot * index;
+  const slot = valid.length > 1 ? plotWidth / (valid.length - 1) : 0;
+  const x = (index: number) => valid.length > 1 ? left + slot * index : left + plotWidth / 2;
   const points = valid.map((item, index) => [x(index), y(item.close)] as const);
   const linePath = points.map(([px, py], index) => `${index === 0 ? "M" : "L"} ${px.toFixed(2)} ${py.toFixed(2)}`).join(" ");
   const areaPath = `${linePath} L ${x(valid.length - 1).toFixed(2)} ${priceBottom} L ${left} ${priceBottom} Z`;
@@ -93,7 +93,7 @@ export default function SimpleChart({
 
   return (
     <div className="w-full" role="img" aria-label={intraday ? "Intraday stock price line chart with volume" : "Historical stock price line chart with shaded area and trading volume bars"}>
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-[390px] w-full cursor-crosshair" preserveAspectRatio="none" onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); const chartX = ((event.clientX - rect.left) / rect.width) * width; if (chartX < left || chartX > width - right) return; const index = Math.max(0, Math.min(valid.length - 1, Math.round((chartX - left) / slot))); setHoverIndex(index); }} onMouseLeave={() => setHoverIndex(null)}>
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-[390px] w-full cursor-crosshair" preserveAspectRatio="none" onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); const chartX = ((event.clientX - rect.left) / rect.width) * width; if (chartX < left || chartX > width - right) return; const index = valid.length === 1 ? 0 : Math.max(0, Math.min(valid.length - 1, Math.round((chartX - left) / slot))); setHoverIndex(index); }} onMouseLeave={() => setHoverIndex(null)}>
         <defs>
           <linearGradient id="priceAreaFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#28c99a" stopOpacity="0.28" />
