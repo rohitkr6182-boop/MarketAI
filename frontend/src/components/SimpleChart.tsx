@@ -1,65 +1,134 @@
-type Candle = { date: string; open: number; high: number; low: number; close: number; volume?: number };
+type PriceBar = {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume?: number;
+};
 
-const formatPrice = (value: number) => value.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+const formatPrice = (value: number) =>
+  value.toLocaleString("en-IN", { maximumFractionDigits: 2 });
 
-export default function SimpleChart({ data }: { data: Candle[] }) {
+const shortDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(5, 10);
+  return date.toLocaleDateString("en-US", { month: "short", day: "2-digit", timeZone: "UTC" });
+};
+
+export default function SimpleChart({ data }: { data: PriceBar[] }) {
   const width = 1000;
-  const height = 320;
-  const left = 18;
+  const height = 390;
+  const left = 62;
   const right = 18;
   const top = 18;
-  const bottom = 34;
-  const plotHeight = height - top - bottom;
-  const values = data.flatMap((item) => [item.high, item.low]).filter(Number.isFinite);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const spread = max - min || Math.max(Math.abs(max) * 0.02, 1);
-  const y = (value: number) => top + ((max + spread * 0.04 - value) / (spread * 1.08)) * plotHeight;
+  const priceBottom = 250;
+  const volumeTop = 292;
+  const volumeBottom = 342;
+  const dateY = 366;
   const plotWidth = width - left - right;
-  const slot = plotWidth / Math.max(data.length, 1);
-  const candleWidth = Math.max(2, Math.min(12, slot * 0.62));
-  const gridValues = Array.from({ length: 5 }, (_, i) => max + spread * 0.04 - (spread * 1.08 * i) / 4);
 
-  if (!data.length) return <div className="flex h-[320px] items-center justify-center text-sm text-text2">No candle data available.</div>;
+  if (!data.length) {
+    return (
+      <div className="flex h-[390px] items-center justify-center text-sm text-text2">
+        No historical price data available for this range.
+      </div>
+    );
+  }
+
+  const valid = data.filter((item) => Number.isFinite(item.close));
+  if (!valid.length) {
+    return (
+      <div className="flex h-[390px] items-center justify-center text-sm text-text2">
+        Price data is unavailable for this range.
+      </div>
+    );
+  }
+
+  const prices = valid.map((item) => item.close);
+  const rawMin = Math.min(...prices);
+  const rawMax = Math.max(...prices);
+  const spread = rawMax - rawMin || Math.max(Math.abs(rawMax) * 0.02, 1);
+  const min = rawMin - spread * 0.12;
+  const max = rawMax + spread * 0.12;
+  const y = (value: number) => priceBottom - ((value - min) / (max - min)) * (priceBottom - top);
+  const slot = plotWidth / Math.max(valid.length - 1, 1);
+  const x = (index: number) => left + slot * index;
+  const points = valid.map((item, index) => [x(index), y(item.close)] as const);
+  const linePath = points.map(([px, py], index) => `${index === 0 ? "M" : "L"} ${px.toFixed(2)} ${py.toFixed(2)}`).join(" ");
+  const areaPath = `${linePath} L ${x(valid.length - 1).toFixed(2)} ${priceBottom} L ${left} ${priceBottom} Z`;
+  const gridValues = Array.from({ length: 5 }, (_, index) => max - ((max - min) * index) / 4);
+  const maxVolume = Math.max(...valid.map((item) => item.volume ?? 0), 1);
+  const volumeSlot = plotWidth / valid.length;
+  const volumeWidth = Math.max(1.5, Math.min(8, volumeSlot * 0.62));
+  const labelIndices = Array.from(new Set(
+    [0, Math.floor((valid.length - 1) * 0.25), Math.floor((valid.length - 1) * 0.5), Math.floor((valid.length - 1) * 0.75), valid.length - 1],
+  ));
 
   return (
-    <div className="w-full" role="img" aria-label="Candlestick price chart showing open, high, low, and close prices">
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-[320px] w-full" preserveAspectRatio="none">
+    <div className="w-full" role="img" aria-label="Historical stock price line chart with shaded area and trading volume bars">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-[390px] w-full" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="priceAreaFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#28c99a" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#28c99a" stopOpacity="0.015" />
+          </linearGradient>
+          <clipPath id="pricePlotClip">
+            <rect x={left} y={top} width={plotWidth} height={priceBottom - top} />
+          </clipPath>
+        </defs>
+
         {gridValues.map((value, index) => {
           const yy = y(value);
           return (
             <g key={index}>
               <line x1={left} x2={width - right} y1={yy} y2={yy} stroke="#283247" strokeDasharray="4 5" />
-              <text x={left + 2} y={yy - 4} fill="#93a0ba" fontSize="11">{formatPrice(value)}</text>
+              <text x={left - 10} y={yy + 4} textAnchor="end" fill="#93a0ba" fontSize="12">{formatPrice(value)}</text>
             </g>
           );
         })}
-        {data.map((item, index) => {
-          const cx = left + slot * index + slot / 2;
-          const isUp = item.close >= item.open;
-          const color = isUp ? "#28c99a" : "#f16f76";
-          const bodyTop = Math.min(y(item.open), y(item.close));
-          const bodyHeight = Math.max(2, Math.abs(y(item.open) - y(item.close)));
+
+        <g clipPath="url(#pricePlotClip)">
+          <path d={areaPath} fill="url(#priceAreaFill)" />
+          <path d={linePath} fill="none" stroke="#35d6a0" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        </g>
+
+        {valid.map((item, index) => {
+          const barX = left + volumeSlot * index + (volumeSlot - volumeWidth) / 2;
+          const barHeight = ((item.volume ?? 0) / maxVolume) * (volumeBottom - volumeTop);
+          const up = item.close >= item.open;
           return (
-            <g key={`${item.date}-${index}`} tabIndex={0}>
-              <title>{`${item.date.slice(0, 10)} · O ${formatPrice(item.open)} · H ${formatPrice(item.high)} · L ${formatPrice(item.low)} · C ${formatPrice(item.close)}${item.volume != null ? ` · Volume ${item.volume.toLocaleString("en-IN")}` : ""}`}</title>
-              <line x1={cx} x2={cx} y1={y(item.high)} y2={y(item.low)} stroke={color} strokeWidth="1.5" />
-              <rect x={cx - candleWidth / 2} y={bodyTop} width={candleWidth} height={bodyHeight} fill={isUp ? color : color} stroke={color} rx="0.6" />
+            <g key={`volume-${item.date}-${index}`}>
+              <title>{`${item.date.slice(0, 10)} · Close ${formatPrice(item.close)} · Volume ${(item.volume ?? 0).toLocaleString("en-IN")}`}</title>
+              <rect
+                x={barX}
+                y={volumeBottom - barHeight}
+                width={volumeWidth}
+                height={Math.max(barHeight, 0.5)}
+                fill={up ? "#28c99a" : "#f16f76"}
+                opacity="0.8"
+                rx="0.8"
+              />
             </g>
           );
         })}
-        {data.filter((_, index) => index === 0 || index === data.length - 1 || index % Math.max(1, Math.floor(data.length / 5)) === 0).map((item) => {
-          const index = data.indexOf(item);
-          const cx = left + slot * index + slot / 2;
-          return <text key={item.date} x={cx} y={height - 10} textAnchor="middle" fill="#93a0ba" fontSize="11">{item.date.slice(5, 10)}</text>;
-        })}
+
+        <line x1={left} x2={width - right} y1={volumeBottom} y2={volumeBottom} stroke="#283247" />
+        <text x={left - 10} y={volumeTop + 4} textAnchor="end" fill="#93a0ba" fontSize="11">{Math.round(maxVolume / 1_000_000)}M</text>
+        <text x={left - 10} y={volumeBottom} textAnchor="end" fill="#93a0ba" fontSize="11">0</text>
+
+        {labelIndices.map((index) => (
+          <text key={valid[index].date} x={x(index)} y={dateY} textAnchor={index === 0 ? "start" : index === valid.length - 1 ? "end" : "middle"} fill="#93a0ba" fontSize="12">
+            {shortDate(valid[index].date)}
+          </text>
+        ))}
       </svg>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3 px-3 text-[11px] text-text2">
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-3 px-3 text-[11px] text-text2">
         <div className="flex items-center gap-4">
-          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-up" /> Bullish close</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-down" /> Bearish close</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-up" /> Closing price</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-up/80" /> Trading volume</span>
         </div>
-        <span>Hover a candle for OHLC values</span>
+        <span>Hover the volume bars for daily close and volume</span>
       </div>
     </div>
   );
