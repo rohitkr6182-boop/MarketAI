@@ -1,3 +1,4 @@
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -37,6 +38,10 @@ def place_buy(payload: OrderRequest, db: Session = Depends(get_db), user: User =
         tx = buy(db, account, stock.id, payload.ticker, payload.quantity, payload.amount)
     except (InsufficientCashError, InvalidOrderError) as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="Could not retrieve a current market price. No order was placed.")
     return {"transaction_id": tx.id, "side": tx.side, "quantity": tx.quantity, "price": tx.price, "amount": tx.amount}
 
 
@@ -48,4 +53,8 @@ def place_sell(payload: SellRequest, db: Session = Depends(get_db), user: User =
         tx = sell(db, account, stock.id, payload.ticker, payload.quantity)
     except (InsufficientSharesError, InvalidOrderError) as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="Could not retrieve a current market price. No order was placed.")
     return {"transaction_id": tx.id, "side": tx.side, "quantity": tx.quantity, "price": tx.price, "amount": tx.amount}
