@@ -1,8 +1,7 @@
 """
 Provider registry for market data, news, financials, analysts, and FX.
-Market quotes/history are selected by region or ticker suffix:
-  - India: market=IN / region=IN, or ticker ending in .NS or .BO
-  - US: market=US / region=US, or the configured US provider default
+Bare symbols in the app's Indian-stock universe route to Tapetide; .NS/.BO
+symbols also route to Tapetide. US symbols route to Alpaca by default.
 """
 from functools import lru_cache
 
@@ -13,6 +12,13 @@ from app.services.providers.mock_provider import (
     MockMarketDataProvider, MockNewsProvider, MockFinancialDataProvider,
     MockAnalystDataProvider, MockFXProvider,
 )
+
+INDIAN_TICKERS = {
+    "TCS", "INFY", "RELIANCE", "HDFCBANK", "ICICIBANK",
+    "BHARTIARTL", "ITC", "LT", "SBIN", "WIPRO", "AXISBANK",
+    "KOTAKBANK", "MARUTI", "TATAMOTORS", "SUNPHARMA", "TITAN",
+    "ASIANPAINT", "BAJFINANCE", "HINDUNILVR", "ULTRACEMCO",
+}
 
 _MARKET_MAP = {
     "mock": MockMarketDataProvider,
@@ -28,18 +34,17 @@ _FX_MAP = {"mock": MockFXProvider}
 def _market_key(ticker=None, region=None):
     normalized_region = (region or "").strip().upper()
     normalized_ticker = (ticker or "").strip().upper()
+    base_ticker = normalized_ticker.split(".")[0]
 
     if normalized_region in {"IN", "INDIA", "NSE", "BSE"}:
         return settings.INDIA_MARKET_DATA_PROVIDER.lower()
     if normalized_region in {"US", "USA", "NASDAQ", "NYSE"}:
         return settings.US_MARKET_DATA_PROVIDER.lower()
-    if normalized_ticker.endswith((".NS", ".BO")):
+    if normalized_ticker.endswith((".NS", ".BO")) or base_ticker in INDIAN_TICKERS:
         return settings.INDIA_MARKET_DATA_PROVIDER.lower()
 
-    # Preserve the old single-provider configuration when explicitly set to
-    # something other than mock; otherwise use the US provider by default.
-    legacy = (settings.MARKET_DATA_PROVIDER or "mock").lower()
-    if legacy != "mock":
+    legacy = (getattr(settings, "MARKET_DATA_PROVIDER", "mock") or "mock").lower()
+    if legacy not in {"", "mock"}:
         return legacy
     return settings.US_MARKET_DATA_PROVIDER.lower()
 
@@ -63,13 +68,15 @@ def get_news_provider():
 
 @lru_cache
 def get_financial_data_provider():
-    cls = _FIN_MAP.get(settings.MARKET_DATA_PROVIDER, MockFinancialDataProvider)
+    key = getattr(settings, "MARKET_DATA_PROVIDER", "mock")
+    cls = _FIN_MAP.get(key, MockFinancialDataProvider)
     return cls()
 
 
 @lru_cache
 def get_analyst_data_provider():
-    cls = _ANALYST_MAP.get(settings.MARKET_DATA_PROVIDER, MockAnalystDataProvider)
+    key = getattr(settings, "MARKET_DATA_PROVIDER", "mock")
+    cls = _ANALYST_MAP.get(key, MockAnalystDataProvider)
     return cls()
 
 
