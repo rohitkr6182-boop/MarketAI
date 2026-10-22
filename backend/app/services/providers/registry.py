@@ -51,6 +51,15 @@ def _market_key(ticker=None, region=None):
 
 @lru_cache
 def _provider_for_key(key):
+    # Keep the app and its test suite runnable without vendor credentials.
+    # The mock provider labels its responses with source="mock", so fallback
+    # data is not silently presented as live market data.
+    if key == "tapetide" and not settings.TAPETIDE_API_KEY.strip():
+        return MockMarketDataProvider()
+    if key == "alpaca" and not (
+        settings.ALPACA_API_KEY.strip() and settings.ALPACA_API_SECRET_KEY.strip()
+    ):
+        return MockMarketDataProvider()
     cls = _MARKET_MAP.get(key, MockMarketDataProvider)
     return cls()
 
