@@ -1,3 +1,4 @@
+import httpx
 from fastapi import APIRouter, HTTPException, Query
 
 from app.services.providers.registry import (
@@ -22,6 +23,8 @@ def stock_quote(ticker: str):
         raise HTTPException(status_code=404, detail="Unknown ticker")
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="Market data provider request failed. Check provider credentials and try again.")
 
 
 @router.get("/{ticker}/history")
