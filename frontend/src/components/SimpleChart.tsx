@@ -8,7 +8,17 @@ type PriceBar = {
 };
 
 const formatPrice = (value: number) =>
-  value.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  value.toLocaleString("en-US", { maximumFractionDigits: 2 });
+
+const formatTime = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/New_York",
+  });
+};
 
 const shortDate = (value: string) => {
   const date = new Date(value);
@@ -16,7 +26,13 @@ const shortDate = (value: string) => {
   return date.toLocaleDateString("en-US", { month: "short", day: "2-digit", timeZone: "UTC" });
 };
 
-export default function SimpleChart({ data }: { data: PriceBar[] }) {
+export default function SimpleChart({
+  data,
+  range = "6M",
+}: {
+  data: PriceBar[];
+  range?: string;
+}) {
   const width = 1000;
   const height = 390;
   const left = 62;
@@ -27,7 +43,6 @@ export default function SimpleChart({ data }: { data: PriceBar[] }) {
   const volumeBottom = 342;
   const dateY = 366;
   const plotWidth = width - left - right;
-
   if (!data.length) {
     return (
       <div className="flex h-[390px] items-center justify-center text-sm text-text2">
@@ -36,7 +51,9 @@ export default function SimpleChart({ data }: { data: PriceBar[] }) {
     );
   }
 
-  const valid = data.filter((item) => Number.isFinite(item.close));
+  const valid = data
+    .filter((item) => Number.isFinite(item.close) && Number.isFinite(new Date(item.date).getTime()))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   if (!valid.length) {
     return (
       <div className="flex h-[390px] items-center justify-center text-sm text-text2">
@@ -45,6 +62,7 @@ export default function SimpleChart({ data }: { data: PriceBar[] }) {
     );
   }
 
+  const intraday = range.toUpperCase() === "1D" && valid.some((item) => item.date.includes("T"));
   const prices = valid.map((item) => item.close);
   const rawMin = Math.min(...prices);
   const rawMax = Math.max(...prices);
@@ -66,7 +84,7 @@ export default function SimpleChart({ data }: { data: PriceBar[] }) {
   ));
 
   return (
-    <div className="w-full" role="img" aria-label="Historical stock price line chart with shaded area and trading volume bars">
+    <div className="w-full" role="img" aria-label={intraday ? "Intraday stock price line chart with volume" : "Historical stock price line chart with shaded area and trading volume bars"}>
       <svg viewBox={`0 0 ${width} ${height}`} className="h-[390px] w-full" preserveAspectRatio="none">
         <defs>
           <linearGradient id="priceAreaFill" x1="0" y1="0" x2="0" y2="1">
@@ -91,6 +109,11 @@ export default function SimpleChart({ data }: { data: PriceBar[] }) {
         <g clipPath="url(#pricePlotClip)">
           <path d={areaPath} fill="url(#priceAreaFill)" />
           <path d={linePath} fill="none" stroke="#35d6a0" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+          {points.map(([px, py], index) => (
+            <circle key={`point-${valid[index].date}`} cx={px} cy={py} r={intraday && index === valid.length - 1 ? 4 : 1.5} fill="#35d6a0">
+              <title>{`${new Date(valid[index].date).toLocaleString("en-US", { timeZone: "America/New_York" })} · Price ${formatPrice(valid[index].close)}`}</title>
+            </circle>
+          ))}
         </g>
 
         {valid.map((item, index) => {
@@ -99,7 +122,7 @@ export default function SimpleChart({ data }: { data: PriceBar[] }) {
           const up = item.close >= item.open;
           return (
             <g key={`volume-${item.date}-${index}`}>
-              <title>{`${item.date.slice(0, 10)} · Close ${formatPrice(item.close)} · Volume ${(item.volume ?? 0).toLocaleString("en-IN")}`}</title>
+              <title>{`${new Date(item.date).toLocaleString("en-US", { timeZone: "America/New_York" })} · Close ${formatPrice(item.close)} · Volume ${(item.volume ?? 0).toLocaleString("en-US")}`}</title>
               <rect
                 x={barX}
                 y={volumeBottom - barHeight}
@@ -119,7 +142,7 @@ export default function SimpleChart({ data }: { data: PriceBar[] }) {
 
         {labelIndices.map((index) => (
           <text key={valid[index].date} x={x(index)} y={dateY} textAnchor={index === 0 ? "start" : index === valid.length - 1 ? "end" : "middle"} fill="#93a0ba" fontSize="12">
-            {shortDate(valid[index].date)}
+            {intraday ? formatTime(valid[index].date) : shortDate(valid[index].date)}
           </text>
         ))}
       </svg>
@@ -128,7 +151,7 @@ export default function SimpleChart({ data }: { data: PriceBar[] }) {
           <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-up" /> Closing price</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-up/80" /> Trading volume</span>
         </div>
-        <span>Hover the volume bars for daily close and volume</span>
+        <span>{intraday ? "Times shown in US Eastern time · hover points/bars for details" : "Hover the volume bars for daily close and volume"}</span>
       </div>
     </div>
   );
