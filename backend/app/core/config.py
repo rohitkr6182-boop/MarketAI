@@ -11,8 +11,14 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
+    # Market data providers. Keep MARKET_DATA_PROVIDER for backward compatibility.
     MARKET_DATA_PROVIDER: str = "mock"
     MARKET_DATA_API_KEY: str = ""
+    INDIA_MARKET_DATA_PROVIDER: str = "tapetide"
+    TAPETIDE_API_KEY: str = ""
+    US_MARKET_DATA_PROVIDER: str = "alpaca"
+    ALPACA_API_KEY: str = ""
+    ALPACA_API_SECRET_KEY: str = ""
 
     NEWS_PROVIDER: str = "mock"
     NEWS_API_KEY: str = ""

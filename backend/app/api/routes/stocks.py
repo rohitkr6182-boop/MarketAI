@@ -10,24 +10,28 @@ router = APIRouter(prefix="/api/stocks", tags=["stocks"])
 
 
 def _hist_arrays(ticker: str, range_key: str = "6M"):
-    hist = get_market_data_provider().get_history(ticker, range_key)
+    hist = get_market_data_provider(ticker=ticker).get_history(ticker, range_key)
     return hist, [h["close"] for h in hist], [h["high"] for h in hist], [h["low"] for h in hist]
 
 
 @router.get("/{ticker}")
 def stock_quote(ticker: str):
     try:
-        return get_market_data_provider().get_quote(ticker)
+        return get_market_data_provider(ticker=ticker).get_quote(ticker)
     except ValueError:
         raise HTTPException(status_code=404, detail="Unknown ticker")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
 
 
 @router.get("/{ticker}/history")
 def stock_history(ticker: str, range: str = Query(default="6M")):
     try:
-        return get_market_data_provider().get_history(ticker, range)
+        return get_market_data_provider(ticker=ticker).get_history(ticker, range)
     except ValueError:
         raise HTTPException(status_code=404, detail="Unknown ticker")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
 
 
 @router.get("/{ticker}/financials")
@@ -45,7 +49,12 @@ def stock_news(ticker: str):
 
 @router.get("/{ticker}/technical")
 def stock_technical(ticker: str, range: str = Query(default="6M")):
-    _, closes, highs, lows = _hist_arrays(ticker, range)
+    try:
+        _, closes, highs, lows = _hist_arrays(ticker, range)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Unknown ticker")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
     if not closes:
         raise HTTPException(status_code=404, detail="Unknown ticker")
     return {
