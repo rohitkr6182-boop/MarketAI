@@ -48,7 +48,7 @@ export default function Stock() {
             <button key={r} onClick={() => setRange(r)} className={`px-2 py-1 rounded ${range === r ? "bg-amber/20 text-amber" : "bg-white/5 text-text2"}`}>{r}</button>
           ))}
         </div>
-        {historyLoading ? <div className="flex h-[390px] items-center justify-center text-sm text-text2">Loading {range} price history…</div> : historyError ? <div role="alert" className="flex h-[390px] items-center justify-center text-center text-sm text-down">Could not load historical prices. Check the provider configuration and try another range.</div> : <SimpleChart data={Array.isArray(history) ? history as any : []} range={range} />}
+        {historyLoading ? <div role="status" aria-live="polite" className="flex h-[390px] flex-col items-center justify-center gap-3 text-sm text-text2"><div className="h-7 w-7 animate-spin rounded-full border-2 border-amber/30 border-t-amber" />Loading {ticker} price history ({range})…</div> : historyError ? <div role="alert" className="flex h-[390px] flex-col items-center justify-center gap-2 text-center text-sm text-down"><p>Could not load historical prices for {ticker} ({range}).</p><p className="max-w-lg text-xs text-text2">Check the provider API key, plan limits, network connection, and backend logs, then retry.</p><button onClick={() => qc.invalidateQueries({ queryKey: ["history", ticker, range] })} className="text-amber hover:underline">Try again</button></div> : <SimpleChart data={Array.isArray(history) ? history as any : []} range={range} />}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
