@@ -67,13 +67,13 @@ export default function Stock() {
 
       <div className="card">
         <h2 className="text-sm font-semibold text-text2 mb-2">Technical Analysis</h2>
-        {latestRsi != null && (
+        {latestRsi != null ? (
           <p className="text-sm">
             RSI: <b>{latestRsi}</b> — {latestRsi >= 70 ? "overbought territory (momentum strongly positive)"
               : latestRsi <= 30 ? "oversold territory (momentum strongly negative)"
               : "a neutral-to-moderate reading"}. This alone does not predict future price movement.
           </p>
-        )}
+        ) : <p className="text-sm text-text2">Technical indicators are unavailable until enough valid historical prices have loaded.</p>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -88,7 +88,7 @@ export default function Stock() {
               <li className="text-text2 text-xs mt-1">{profile.description}</li>
               <li className="text-text3 text-xs">Demo data — last updated {profile.last_updated?.slice(0, 10)}</li>
             </ul>
-          )}
+          ) : <p className="text-sm text-text2">Company profile is unavailable for this ticker.</p>}
         </div>
         <div className="card">
           <h2 className="text-sm font-semibold text-text2 mb-2">Analyst Ratings (external opinion)</h2>
@@ -111,8 +111,10 @@ export default function Stock() {
                 <td className="text-center">{f.eps}</td>
               </tr>
             ))}
+            {(!financials || financials.length === 0) && <tr><td colSpan={4} className="py-3 text-center text-text2">Financial statements are not available for this ticker in the current data source.</td></tr>}
           </tbody>
         </table>
+        <p className="mt-2 text-[10px] text-text2">Financial statements and analyst ratings may be demo data; the configured quote provider does not supply these fields.</p>
       </div>
 
       <div className="card">
@@ -120,10 +122,11 @@ export default function Stock() {
         <div className="flex flex-col gap-2">
           {(news ?? []).map((n: any) => (
             <div key={n.id} className="text-sm border-b border-border/50 pb-2 last:border-0">
-              <div className="text-text2 text-xs">{new Date(n.published_at).toTimeString().slice(0, 5)} • {n.source} • {n.sentiment}</div>
+              <div className="text-text2 text-xs">{new Date(n.published_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} • {n.source} • {n.sentiment}</div>
               {n.headline}
             </div>
           ))}
+          {(!news || news.length === 0) && <p className="text-sm text-text2">No company news is available from the current news provider.</p>}
         </div>
       </div>
 
