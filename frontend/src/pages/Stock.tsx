@@ -79,7 +79,7 @@ export default function Stock() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="card">
           <h2 className="text-sm font-semibold text-text2 mb-2">Company Profile</h2>
-          {profile && (
+          {profile ? (
             <ul className="text-sm flex flex-col gap-1">
               <li>Founded: {profile.founded_year}</li>
               <li>HQ: {profile.headquarters}</li>
