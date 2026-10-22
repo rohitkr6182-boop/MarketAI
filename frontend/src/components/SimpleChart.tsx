@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 type PriceBar = {
   date: string;
   open: number;
@@ -43,6 +45,7 @@ export default function SimpleChart({
   const volumeBottom = 342;
   const dateY = 366;
   const plotWidth = width - left - right;
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   if (!data.length) {
     return (
       <div className="flex h-[390px] items-center justify-center text-sm text-text2">
@@ -82,10 +85,15 @@ export default function SimpleChart({
   const labelIndices = Array.from(new Set(
     [0, Math.floor((valid.length - 1) * 0.25), Math.floor((valid.length - 1) * 0.5), Math.floor((valid.length - 1) * 0.75), valid.length - 1],
   ));
+  const hovered = hoverIndex == null ? null : valid[hoverIndex];
+  const hoveredPoint = hoverIndex == null ? null : points[hoverIndex];
+  const tooltipX = hoveredPoint ? Math.max(left + 6, Math.min(hoveredPoint[0] - 140, width - right - 286)) : 0;
+  const tooltipY = hoveredPoint ? Math.max(top + 4, Math.min(hoveredPoint[1] - 82, priceBottom - 84)) : 0;
+  const hoveredDate = hovered ? (intraday ? formatTime(hovered.date) : shortDate(hovered.date)) : "";
 
   return (
     <div className="w-full" role="img" aria-label={intraday ? "Intraday stock price line chart with volume" : "Historical stock price line chart with shaded area and trading volume bars"}>
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-[390px] w-full" preserveAspectRatio="none">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-[390px] w-full cursor-crosshair" preserveAspectRatio="none" onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); const chartX = ((event.clientX - rect.left) / rect.width) * width; if (chartX < left || chartX > width - right) return; const index = Math.max(0, Math.min(valid.length - 1, Math.round((chartX - left) / slot))); setHoverIndex(index); }} onMouseLeave={() => setHoverIndex(null)}>
         <defs>
           <linearGradient id="priceAreaFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#28c99a" stopOpacity="0.28" />
@@ -136,6 +144,18 @@ export default function SimpleChart({
           );
         })}
 
+        {hoveredPoint && hovered && (
+          <g pointerEvents="none">
+            <line x1={hoveredPoint[0]} x2={hoveredPoint[0]} y1={top} y2={volumeBottom} stroke="#d6deeb" strokeDasharray="4 4" strokeWidth="1.2" opacity="0.8" />
+            <circle cx={hoveredPoint[0]} cy={hoveredPoint[1]} r="5" fill="#35d6a0" stroke="#101827" strokeWidth="2" />
+            <rect x={tooltipX} y={tooltipY} width="280" height="78" rx="8" fill="#0b1220" stroke="#64748b" strokeWidth="1" opacity="0.98" />
+            <text x={tooltipX + 12} y={tooltipY + 17} fill="#e2e8f0" fontSize="12" fontWeight="600">{hoveredDate}</text>
+            <text x={tooltipX + 12} y={tooltipY + 36} fill="#cbd5e1" fontSize="11">Open {formatPrice(hovered.open)} · High {formatPrice(hovered.high)}</text>
+            <text x={tooltipX + 12} y={tooltipY + 52} fill="#cbd5e1" fontSize="11">Low {formatPrice(hovered.low)} · Close {formatPrice(hovered.close)}</text>
+            <text x={tooltipX + 12} y={tooltipY + 68} fill="#94a3b8" fontSize="10">Volume {(hovered.volume ?? 0).toLocaleString("en-US")}</text>
+          </g>
+        )}
+
         <line x1={left} x2={width - right} y1={volumeBottom} y2={volumeBottom} stroke="#283247" />
         <text x={left - 10} y={volumeTop + 4} textAnchor="end" fill="#93a0ba" fontSize="11">{Math.round(maxVolume / 1_000_000)}M</text>
         <text x={left - 10} y={volumeBottom} textAnchor="end" fill="#93a0ba" fontSize="11">0</text>
@@ -151,7 +171,7 @@ export default function SimpleChart({
           <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-up" /> Closing price</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-up/80" /> Trading volume</span>
         </div>
-        <span>{intraday ? "Times shown in US Eastern time · hover points/bars for details" : "Hover the volume bars for daily close and volume"}</span>
+        <span>{intraday ? "Times shown in US Eastern time · hover points/bars for details" : "Move your cursor over the chart for date, OHLC and volume"}</span>
       </div>
     </div>
   );
