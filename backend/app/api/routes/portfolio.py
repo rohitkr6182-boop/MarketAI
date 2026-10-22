@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Query
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -19,7 +20,12 @@ def _default_cash(currency: str) -> float:
 def get_portfolio(currency: str = Query(default="INR"), db: Session = Depends(get_db),
                    user: User = Depends(get_current_user)):
     account = get_or_create_account(db, user.id, currency, _default_cash(currency))
-    return portfolio_summary(db, account)
+    try:
+        return portfolio_summary(db, account)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="Could not refresh portfolio prices from the market-data provider.")
 
 
 @router.get("/transactions")
