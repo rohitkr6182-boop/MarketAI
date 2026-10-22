@@ -35,6 +35,11 @@ def stock_history(ticker: str, range: str = Query(default="6M")):
         raise HTTPException(status_code=404, detail="Unknown ticker")
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
+    except httpx.HTTPError:
+        raise HTTPException(
+            status_code=502,
+            detail="Market data provider failed to return historical prices. Check provider credentials, plan limits, and backend logs.",
+        )
 
 
 @router.get("/{ticker}/financials")
@@ -58,6 +63,11 @@ def stock_technical(ticker: str, range: str = Query(default="6M")):
         raise HTTPException(status_code=404, detail="Unknown ticker")
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
+    except httpx.HTTPError:
+        raise HTTPException(
+            status_code=502,
+            detail="Market data provider failed to return historical prices for technical analysis.",
+        )
     if not closes:
         raise HTTPException(status_code=404, detail="Unknown ticker")
     return {
