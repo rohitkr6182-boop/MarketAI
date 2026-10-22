@@ -12,15 +12,15 @@ export default function Stock() {
   const [modal, setModal] = useState<"BUY" | "SELL" | null>(null);
   const [range, setRange] = useState("6M");
 
-  const { data: quote } = useQuery({ queryKey: ["quote", ticker], queryFn: () => api.quote(ticker).then((r) => r.data as Quote), refetchInterval: 10_000 });
-  const { data: history } = useQuery({ queryKey: ["history", ticker, range], queryFn: () => api.history(ticker, range).then((r) => r.data) });
-  const { data: technical } = useQuery({ queryKey: ["technical", ticker], queryFn: () => api.technical(ticker).then((r) => r.data) });
+  const { data: quote, isLoading: quoteLoading, isError: quoteError } = useQuery({ queryKey: ["quote", ticker], queryFn: () => api.quote(ticker).then((r) => r.data as Quote), refetchInterval: 15_000, retry: 1, enabled: Boolean(ticker) });
+  const { data: history, isLoading: historyLoading, isError: historyError } = useQuery({ queryKey: ["history", ticker, range], queryFn: () => api.history(ticker, range).then((r) => r.data), refetchInterval: range === "1D" ? 15_000 : 60_000, refetchIntervalInBackground: false, retry: 1, enabled: Boolean(ticker) });
+  const { data: technical } = useQuery({ queryKey: ["technical", ticker, range], queryFn: () => api.technical(ticker, range).then((r) => r.data), retry: 1, enabled: Boolean(ticker) });
   const { data: financials } = useQuery({ queryKey: ["financials", ticker], queryFn: () => api.financials(ticker).then((r) => r.data) });
   const { data: news } = useQuery({ queryKey: ["news", ticker], queryFn: () => api.companyNews(ticker).then((r) => r.data) });
   const { data: profile } = useQuery({ queryKey: ["profile", ticker], queryFn: () => api.profile(ticker).then((r) => r.data) });
   const { data: analyst } = useQuery({ queryKey: ["analyst", ticker], queryFn: () => api.analyst(ticker).then((r) => r.data).catch(() => null) });
 
-  if (!quote) return <p className="text-text2">Loading…</p>;
+  if (!quote) return <div className="card text-sm text-text2">{quoteError ? "Could not load this stock quote. Check your provider API keys and backend logs, then retry." : quoteLoading ? "Loading stock quote…" : "No quote data is available for this ticker."}</div>;
 
   const latestRsi = technical?.rsi?.filter((v: number | null) => v != null).slice(-1)[0];
 
@@ -32,11 +32,11 @@ export default function Stock() {
           <p className="text-text2 text-xs">{quote.sector} • {quote.exchange}</p>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-2xl font-semibold tabular-nums">{quote.price} {quote.currency}</span>
-            <span className={quote.change_pct >= 0 ? "pill-pos" : "pill-neg"}>{quote.change_pct >= 0 ? "+" : ""}{quote.change_pct}%</span>
+            <span className={quote.change_pct != null && quote.change_pct >= 0 ? "pill-pos" : "pill-neg"}>{quote.change_pct == null ? "Change unavailable" : `${quote.change_pct >= 0 ? "+" : ""}${quote.change_pct.toFixed(2)}%`}</span>
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => api.addWatchlist(ticker)} className="text-xs bg-white/5 rounded-md px-3 py-2">⭐ Watchlist</button>
+          <button onClick={async () => { try { await api.addWatchlist(ticker); await qc.invalidateQueries({ queryKey: ["watchlist"] }); } catch { window.alert("Could not add this ticker to the watchlist. Confirm it exists in the seeded trading universe."); } }} className="text-xs bg-white/5 rounded-md px-3 py-2">⭐ Watchlist</button>
           <button onClick={() => setModal("BUY")} className="text-xs bg-up/20 text-up rounded-md px-3 py-2 font-medium">BUY</button>
           <button onClick={() => setModal("SELL")} className="text-xs bg-down/20 text-down rounded-md px-3 py-2 font-medium">SELL</button>
         </div>
@@ -48,7 +48,7 @@ export default function Stock() {
             <button key={r} onClick={() => setRange(r)} className={`px-2 py-1 rounded ${range === r ? "bg-amber/20 text-amber" : "bg-white/5 text-text2"}`}>{r}</button>
           ))}
         </div>
-        {history && <SimpleChart data={history as any} />}
+        {historyLoading ? <div className="flex h-[390px] items-center justify-center text-sm text-text2">Loading {range} price history…</div> : historyError ? <div role="alert" className="flex h-[390px] items-center justify-center text-center text-sm text-down">Could not load historical prices. Check the provider configuration and try another range.</div> : <SimpleChart data={Array.isArray(history) ? history as any : []} range={range} />}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
