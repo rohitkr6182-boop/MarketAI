@@ -75,9 +75,24 @@ export default function Dashboard() {
     refetchInterval: 60_000,
   });
 
-  useEffect(() => {\n    if (historyQuery.dataUpdatedAt || indianStocksQuery.dataUpdatedAt || indicesQuery.dataUpdatedAt) {\n      setLastUpdated(new Date(Math.max(historyQuery.dataUpdatedAt, indianStocksQuery.dataUpdatedAt, indicesQuery.dataUpdatedAt)));\n    }\n  }, [historyQuery.dataUpdatedAt, indianStocksQuery.dataUpdatedAt, indicesQuery.dataUpdatedAt]);\n\n  const portfolio = portfolioQuery.data;
+  useEffect(() => {
+    const updatedAt = Math.max(
+      historyQuery.dataUpdatedAt,
+      indianStocksQuery.dataUpdatedAt,
+      indicesQuery.dataUpdatedAt,
+    );
+    if (updatedAt > 0) {
+      setLastUpdated(new Date(updatedAt));
+    }
+  }, [
+    historyQuery.dataUpdatedAt,
+    indianStocksQuery.dataUpdatedAt,
+    indicesQuery.dataUpdatedAt,
+  ]);
+
+  const portfolio = portfolioQuery.data;
   const history = Array.isArray(historyQuery.data) ? historyQuery.data : [];
-  const latest = history.at(-1);
+  const latest = history[history.length - 1];
   const first = history[0];
   const chartChange = latest && first ? latest.close - first.close : undefined;
   const chartChangePct = chartChange != null && first?.close ? (chartChange / first.close) * 100 : undefined;
