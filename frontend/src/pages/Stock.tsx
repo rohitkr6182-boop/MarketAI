@@ -12,7 +12,7 @@ export default function Stock() {
   const [modal, setModal] = useState<"BUY" | "SELL" | null>(null);
   const [range, setRange] = useState("6M");
 
-  const { data: quote, isLoading: quoteLoading, isError: quoteError } = useQuery({ queryKey: ["quote", ticker], queryFn: () => api.quote(ticker).then((r) => r.data as Quote), refetchInterval: 15_000, retry: 1, enabled: Boolean(ticker) });
+  const { data: quote, isLoading: quoteLoading, isError: quoteError, error: quoteQueryError, refetch: retryQuote } = useQuery({ queryKey: ["quote", ticker], queryFn: () => api.quote(ticker).then((r) => r.data as Quote), refetchInterval: 15_000, retry: 1, enabled: Boolean(ticker) });
   const { data: history, isLoading: historyLoading, isError: historyError } = useQuery({ queryKey: ["history", ticker, range], queryFn: () => api.history(ticker, range).then((r) => r.data), refetchInterval: range === "1D" ? 15_000 : 60_000, refetchIntervalInBackground: false, retry: 1, enabled: Boolean(ticker) });
   const { data: technical } = useQuery({ queryKey: ["technical", ticker, range], queryFn: () => api.technical(ticker, range).then((r) => r.data), retry: 1, enabled: Boolean(ticker) });
   const { data: financials } = useQuery({ queryKey: ["financials", ticker], queryFn: () => api.financials(ticker).then((r) => r.data) });
@@ -20,7 +20,24 @@ export default function Stock() {
   const { data: profile } = useQuery({ queryKey: ["profile", ticker], queryFn: () => api.profile(ticker).then((r) => r.data) });
   const { data: analyst } = useQuery({ queryKey: ["analyst", ticker], queryFn: () => api.analyst(ticker).then((r) => r.data).catch(() => null) });
 
-  if (!quote) return <div className="card text-sm text-text2">{quoteError ? "Could not load this stock quote. Check your provider API keys and backend logs, then retry." : quoteLoading ? "Loading stock quote…" : "No quote data is available for this ticker."}</div>;
+  if (!quote) {
+    const error = quoteQueryError as { response?: { status?: number; data?: { detail?: string } }; code?: string; message?: string } | null;
+    const status = error?.response?.status;
+    const detail = error?.response?.data?.detail;
+    const message = status
+      ? "API returned HTTP " + status + (detail ? ": " + detail : "")
+      : error?.code === "ECONNABORTED"
+        ? "The API request timed out after 25 seconds."
+        : error?.message || "No response received from the backend.";
+    return (
+      <div className="card flex flex-col items-start gap-3 text-sm text-text2" role={quoteError ? "alert" : "status"}>
+        <p className="font-semibold text-text">{quoteLoading ? "Loading " + ticker + " quote…" : quoteError ? "Could not load the " + ticker + " stock quote." : "No quote data is available for this ticker."}</p>
+        {quoteError && <p className="max-w-2xl text-xs leading-5">{message}</p>}
+        {quoteError && <p className="max-w-2xl text-xs leading-5">Check that the backend is running at localhost:8000 and its market-data provider is configured. If you use Docker Compose, rebuild/restart the services after pulling the latest code.</p>}
+        {quoteError && <button onClick={() => retryQuote()} className="rounded-lg bg-amber px-3 py-2 font-semibold text-[#17120a] hover:bg-amber/90">Retry quote</button>}
+      </div>
+    );
+  }
 
   const latestRsi = technical?.rsi?.filter((v: number | null) => v != null).slice(-1)[0];
 
