@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { font-family: system-ui, -apple-system, sans-serif; }
+.card { @apply bg-bgCard border border-border rounded-xl p-4; }
+.pill-pos { @apply text-up bg-up/10 rounded px-2 py-0.5 text-xs; }
+.pill-neg { @apply text-down bg-down/10 rounded px-2 py-0.5 text-xs; }
+.pill-neu { @apply text-text2 bg-white/5 rounded px-2 py-0.5 text-xs; }
