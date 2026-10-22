@@ -107,6 +107,63 @@ export default function Dashboard() {
         <div className="hero-grid" aria-hidden="true" />
       </section>
 
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="chart-panel min-w-0">
+          <div className="flex flex-col gap-4 border-b border-border/70 px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="section-kicker"><Activity size={14} /> PRICE PERFORMANCE</div>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <select aria-label="Select stock symbol" value={ticker} onChange={(e) => setTicker(e.target.value)} className="rounded-lg border border-border bg-bgElev px-3 py-2 text-base font-semibold text-text outline-none focus:border-amber">
+                  {symbols.map((symbol) => <option key={symbol} value={symbol}>{symbol}</option>)}
+                </select>
+                <span className="text-xs text-text2">{range} historical view</span>
+              </div>
+              <div className="mt-3 flex flex-wrap items-baseline gap-3">
+                <span className="text-2xl font-semibold tracking-tight text-text tabular-nums">{latest ? money(latest.close) : "—"}</span>
+                {chartChangePct != null && (
+                  <span className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold ${chartChangePct >= 0 ? "bg-up/10 text-up" : "bg-down/10 text-down"}`}>
+                    {chartChangePct >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                    {chartChangePct >= 0 ? "+" : ""}{chartChangePct.toFixed(2)}%
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-text2">Historical close • Not a live quote</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-bg/60 p-1">
+              {ranges.map((item) => (
+                <button key={item} onClick={() => setRange(item)} className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${range === item ? "bg-amber text-[#17120a]" : "text-text2 hover:bg-white/5 hover:text-text"}`}>{item}</button>
+              ))}
+            </div>
+          </div>
+          <div className="px-2 pb-3 pt-4 sm:px-4">
+            {historyQuery.isLoading ? (
+              <div className="h-[300px] animate-pulse rounded-xl bg-bgElev/70" />
+            ) : historyQuery.isError ? (
+              <div className="flex h-[300px] flex-col items-center justify-center gap-2 text-center text-sm text-text2">
+                <BarChart3 size={28} className="text-amber" />
+                <p>Could not load historical prices for {ticker}.</p>
+                <button onClick={() => historyQuery.refetch()} className="text-amber hover:underline">Try again</button>
+              </div>
+            ) : history.length ? (
+              <SimpleChart data={history} />
+            ) : (
+              <div className="flex h-[300px] flex-col items-center justify-center gap-2 text-center text-sm text-text2">
+                <BarChart3 size={28} className="text-amber" />
+                <p>No historical chart data is available for {ticker} in this range.</p>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 px-5 py-3">
+            <span className="text-xs text-text2">Chart updates when history refreshes; real-time ticks require a configured streaming feed.</span>
+            <Link to={`/stocks/${ticker}`} className="inline-flex items-center gap-1 text-xs font-semibold text-amber hover:text-amber/80">View {ticker} details <ArrowUpRight size={13} /></Link>
+          </div>
+        </div>
+        <div className="min-w-0 xl:max-h-[540px]">
+          <LiveNewsPanel />
+        </div>
+      </section>
+
+
       <section aria-label="Portfolio overview" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Portfolio value" value={portfolio ? `₹${money(portfolio.total_value)}` : "Loading…"} detail="Your total demo account value" icon={WalletCards} tone="amber" />
         <StatCard label="Available cash" value={portfolio ? `₹${money(portfolio.cash_balance)}` : "Loading…"} detail="Available demo buying power" icon={BriefcaseBusiness} tone="blue" />
@@ -173,62 +230,6 @@ export default function Dashboard() {
             })}
           </div>
         )}
-      </section>
-
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="chart-panel min-w-0">
-          <div className="flex flex-col gap-4 border-b border-border/70 px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="section-kicker"><Activity size={14} /> PRICE PERFORMANCE</div>
-              <div className="mt-2 flex flex-wrap items-center gap-3">
-                <select aria-label="Select stock symbol" value={ticker} onChange={(e) => setTicker(e.target.value)} className="rounded-lg border border-border bg-bgElev px-3 py-2 text-base font-semibold text-text outline-none focus:border-amber">
-                  {symbols.map((symbol) => <option key={symbol} value={symbol}>{symbol}</option>)}
-                </select>
-                <span className="text-xs text-text2">{range} historical view</span>
-              </div>
-              <div className="mt-3 flex flex-wrap items-baseline gap-3">
-                <span className="text-2xl font-semibold tracking-tight text-text tabular-nums">{latest ? money(latest.close) : "—"}</span>
-                {chartChangePct != null && (
-                  <span className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold ${chartChangePct >= 0 ? "bg-up/10 text-up" : "bg-down/10 text-down"}`}>
-                    {chartChangePct >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                    {chartChangePct >= 0 ? "+" : ""}{chartChangePct.toFixed(2)}%
-                  </span>
-                )}
-              </div>
-              <p className="mt-1 text-xs text-text2">Historical close • Not a live quote</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-bg/60 p-1">
-              {ranges.map((item) => (
-                <button key={item} onClick={() => setRange(item)} className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${range === item ? "bg-amber text-[#17120a]" : "text-text2 hover:bg-white/5 hover:text-text"}`}>{item}</button>
-              ))}
-            </div>
-          </div>
-          <div className="px-2 pb-3 pt-4 sm:px-4">
-            {historyQuery.isLoading ? (
-              <div className="h-[300px] animate-pulse rounded-xl bg-bgElev/70" />
-            ) : historyQuery.isError ? (
-              <div className="flex h-[300px] flex-col items-center justify-center gap-2 text-center text-sm text-text2">
-                <BarChart3 size={28} className="text-amber" />
-                <p>Could not load historical prices for {ticker}.</p>
-                <button onClick={() => historyQuery.refetch()} className="text-amber hover:underline">Try again</button>
-              </div>
-            ) : history.length ? (
-              <SimpleChart data={history} />
-            ) : (
-              <div className="flex h-[300px] flex-col items-center justify-center gap-2 text-center text-sm text-text2">
-                <BarChart3 size={28} className="text-amber" />
-                <p>No historical chart data is available for {ticker} in this range.</p>
-              </div>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 px-5 py-3">
-            <span className="text-xs text-text2">Chart updates when history refreshes; real-time ticks require a configured streaming feed.</span>
-            <Link to={`/stocks/${ticker}`} className="inline-flex items-center gap-1 text-xs font-semibold text-amber hover:text-amber/80">View {ticker} details <ArrowUpRight size={13} /></Link>
-          </div>
-        </div>
-        <div className="min-w-0 xl:max-h-[540px]">
-          <LiveNewsPanel />
-        </div>
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
