@@ -53,9 +53,10 @@ export default function Stock() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          ["Day High", quote.day_high], ["Day Low", quote.day_low], ["Prev Close", quote.prev_close],
-          ["52W High", quote.week52_high], ["52W Low", quote.week52_low], ["Volume", quote.volume.toLocaleString()],
-          ["Market Cap", quote.market_cap.toLocaleString()], ["P/E", quote.pe],
+          ["Day High", quote.day_high ?? "—"], ["Day Low", quote.day_low ?? "—"], ["Prev Close", quote.prev_close ?? "—"],
+          ["52W High", quote.week52_high ?? "—"], ["52W Low", quote.week52_low ?? "—"],
+          ["Volume", quote.volume == null ? "—" : quote.volume.toLocaleString()],
+          ["Market Cap", quote.market_cap == null ? "—" : quote.market_cap.toLocaleString()], ["P/E", quote.pe ?? "—"],
         ].map(([label, val]) => (
           <div key={label as string} className="card py-2">
             <div className="text-xs text-text2">{label}</div>
