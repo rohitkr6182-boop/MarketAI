@@ -1,3 +1,4 @@
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -24,13 +25,20 @@ def _get_or_create_watchlist(db: Session, user_id: int) -> Watchlist:
 def list_watchlist(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     wl = _get_or_create_watchlist(db, user.id)
     items = db.query(WatchlistStock).filter_by(watchlist_id=wl.id).all()
-    provider = get_market_data_provider()
     out = []
     for item in items:
         from app.models.market import Stock
         stock = db.query(Stock).filter_by(id=item.stock_id).first()
+        if not stock:
+            continue
         company = db.query(Company).filter_by(id=stock.company_id).first()
-        out.append(provider.get_quote(company.ticker))
+        if not company:
+            continue
+        try:
+            out.append(get_market_data_provider(ticker=company.ticker).get_quote(company.ticker))
+        except (ValueError, RuntimeError, httpx.HTTPError):
+            # Keep the remaining watchlist visible if one provider quote fails.
+            continue
     return out
 
 
