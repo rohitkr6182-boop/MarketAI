@@ -13,7 +13,7 @@ import type { IndexQuote, Portfolio } from "../types";
 
 const ranges = ["1D", "1W", "1M", "3M", "6M", "1Y"];
 const symbols = ["TCS", "INFY", "RELIANCE", "HDFCBANK", "AAPL", "MSFT", "NVDA", "GOOGL"];
-const indianStocks = ["TCS", "INFY", "RELIANCE", "HDFCBANK"];
+const indianStocks = ["RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY", "BHARTIARTL", "ITC", "LT"];
 
 const money = (value?: number) =>
   value == null ? "—" : value.toLocaleString("en-IN", { maximumFractionDigits: 2 });
@@ -66,7 +66,7 @@ export default function Dashboard() {
   });
   const historyQuery = useQuery({
     queryKey: ["history", ticker, range],
-    queryFn: () => api.history(ticker, range).then((r) => r.data as { date: string; close: number }[]),
+    queryFn: () => api.history(ticker, range).then((r) => r.data as { date: string; open: number; high: number; low: number; close: number; volume?: number }[]),
     refetchInterval: 60_000,
   });
 
@@ -158,7 +158,7 @@ export default function Dashboard() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="text-sm font-semibold text-text">{symbol}</div>
-                      <div className="mt-1 min-h-8 text-xs leading-4 text-text2">{quote?.name ?? (symbol === "TCS" ? "Tata Consultancy Services" : symbol === "INFY" ? "Infosys" : symbol === "RELIANCE" ? "Reliance Industries" : "HDFC Bank")}</div>
+                      <div className="mt-1 min-h-8 text-xs leading-4 text-text2">{quote?.name ?? (symbol === "TCS" ? "Tata Consultancy Services" : symbol === "INFY" ? "Infosys" : symbol === "RELIANCE" ? "Reliance Industries" : symbol === "HDFCBANK" ? "HDFC Bank" : symbol === "ICICIBANK" ? "ICICI Bank" : symbol === "BHARTIARTL" ? "Bharti Airtel" : symbol === "ITC" ? "ITC Ltd" : symbol === "LT" ? "Larsen & Toubro" : "Infosys")}</div>
                     </div>
                     <span className="rounded-lg bg-white/5 px-2 py-1 text-[10px] font-semibold tracking-wide text-text2">NSE</span>
                   </div>
