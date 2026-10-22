@@ -32,12 +32,14 @@ def rsi(values: list[float], period: int = 14) -> list[Optional[float]]:
         losses.append(max(-diff, 0))
     avg_gain = sum(gains[:period]) / period
     avg_loss = sum(losses[:period]) / period
-    out[period] = 100 - 100 / (1 + (avg_gain / avg_loss if avg_loss else 999))
+    out[period] = 100.0 if avg_loss == 0 and avg_gain > 0 else 50.0 if avg_loss == 0 else round(100 - 100 / (1 + avg_gain / avg_loss), 2)
     for i in range(period, len(gains)):
         avg_gain = (avg_gain * (period - 1) + gains[i]) / period
         avg_loss = (avg_loss * (period - 1) + losses[i]) / period
-        rs = avg_gain / avg_loss if avg_loss else 999
-        out[i + 1] = round(100 - 100 / (1 + rs), 2)
+        if avg_loss == 0:
+            out[i + 1] = 100.0 if avg_gain > 0 else 50.0
+        else:
+            out[i + 1] = round(100 - 100 / (1 + avg_gain / avg_loss), 2)
     return out
 
 
