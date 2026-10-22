@@ -6,7 +6,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": "http://backend:8000",
+      // Local npm run dev uses localhost; Docker Compose overrides this target.
+      "/api": process.env.VITE_API_PROXY_TARGET || "http://localhost:8000",
     },
   },
 });
