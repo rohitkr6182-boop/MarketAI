@@ -74,6 +74,8 @@ export default function Dashboard() {
     queryFn: () => api.quote(ticker).then((r) => r.data as { ticker: string; price: number; currency: string; source?: string }),
     retry: 1,
     refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
   const historyQuery = useQuery({
     queryKey: ["history", ticker, range],
@@ -85,6 +87,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const updatedAt = Math.max(
+      quoteQuery.dataUpdatedAt,
       historyQuery.dataUpdatedAt,
       indianStocksQuery.dataUpdatedAt,
       indicesQuery.dataUpdatedAt,
@@ -93,6 +96,7 @@ export default function Dashboard() {
       setLastUpdated(new Date(updatedAt));
     }
   }, [
+    quoteQuery.dataUpdatedAt,
     historyQuery.dataUpdatedAt,
     indianStocksQuery.dataUpdatedAt,
     indicesQuery.dataUpdatedAt,
@@ -102,10 +106,15 @@ export default function Dashboard() {
   const history = Array.isArray(historyQuery.data) ? historyQuery.data : [];
   const latest = history[history.length - 1];
   const first = history[0];
-  const displayedPrice = latest ? latest.close : quoteQuery.data?.price;
-  const displayedPriceLabel = latest
-    ? (historyQuery.dataUpdatedAt > 0 ? "Historical close" : "Price")
-    : quoteQuery.data?.source === "mock" ? "Demo quote · not live" : quoteQuery.data ? "Latest quote · history unavailable" : "Price unavailable";
+  // Prefer the newest quote for the headline price. Historical bars can end
+  // before the latest trading session, so using history[last].close here can
+  // make the dashboard appear stale even when the quote endpoint is current.
+  const displayedPrice = quoteQuery.data?.price ?? latest?.close;
+  const displayedPriceLabel = quoteQuery.data?.source === "mock"
+    ? "Demo quote · not live"
+    : quoteQuery.data
+      ? (quoteQuery.data.source ? `Quote · ${quoteQuery.data.source}` : "Latest quote")
+      : latest ? "Historical close · quote unavailable" : "Price unavailable";
   const historyErrorDetail = (historyQuery.error as { response?: { data?: { detail?: string } }; message?: string } | null)?.response?.data?.detail
     ?? (historyQuery.error as { message?: string } | null)?.message;
   const chartChange = history.length > 1 && latest && first ? latest.close - first.close : undefined;
@@ -113,7 +122,7 @@ export default function Dashboard() {
   const greeting = new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening";
 
   const refreshAll = async () => {
-    await Promise.all([indicesQuery.refetch(), portfolioQuery.refetch(), indianStocksQuery.refetch(), historyQuery.refetch()]);
+    await Promise.all([indicesQuery.refetch(), portfolioQuery.refetch(), indianStocksQuery.refetch(), quoteQuery.refetch(), historyQuery.refetch()]);
     setLastUpdated(new Date());
   };
 
@@ -154,7 +163,7 @@ export default function Dashboard() {
               </div>
               <div className="mt-3 flex flex-wrap items-baseline gap-3">
                 <span className="text-2xl font-semibold tracking-tight text-text tabular-nums">{displayedPrice == null ? "—" : money(displayedPrice)}</span>
-                {!latest && displayedPrice != null && <span className="text-[11px] text-text2">{displayedPriceLabel}</span>}
+                {displayedPrice != null && <span className={`text-[11px] ${quoteQuery.data?.source === "mock" ? "font-semibold text-amber" : "text-text2"}`}>{displayedPriceLabel}</span>}
                 {chartChangePct != null && (
                   <span className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold ${chartChangePct >= 0 ? "bg-up/10 text-up" : "bg-down/10 text-down"}`}>
                     {chartChangePct >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
