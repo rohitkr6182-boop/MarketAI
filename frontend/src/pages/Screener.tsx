@@ -13,6 +13,11 @@ type SearchResult = { ticker: string; name: string; exchange: string; sector: st
 
 const POPULAR = ["TCS", "INFY", "RELIANCE", "HDFCBANK", "AAPL", "MSFT", "NVDA", "GOOGL"];
 
+// Providers can legitimately omit fields for unavailable or delayed quotes.
+const safeNumber = (value: unknown): number | null =>
+  typeof value === "number" && Number.isFinite(value) ? value : null;
+const changePercent = (stock: Quote): number | null => safeNumber(stock.change_pct);
+
 export default function Screener() {
   const [search, setSearch] = useState("");
   const [sector, setSector] = useState("All sectors");
@@ -46,7 +51,7 @@ export default function Screener() {
 
   const filtered = useMemo(() => stocks
     .filter((stock) => sector === "All sectors" || stock.sector === sector)
-    .filter((stock) => direction === "all" || (direction === "gainers" ? stock.change_pct >= 0 : stock.change_pct < 0))
+    .filter((stock) => direction === "all" || (direction === "gainers" ? (changePercent(stock) ?? -Infinity) >= 0 : (changePercent(stock) ?? Infinity) < 0))
     .sort((a, b) => {
       if (sortBy === "ticker") return a.ticker.localeCompare(b.ticker);
       return (Number(b[sortBy]) || 0) - (Number(a[sortBy]) || 0);
@@ -89,12 +94,12 @@ export default function Screener() {
         </div>
         <div className="stat-card">
           <div className="flex items-center justify-between text-xs text-text2"><span>Gainers in results</span><TrendingUp size={16} className="text-up" /></div>
-          <div className="mt-3 text-2xl font-semibold tabular-nums text-text">{stocks.filter((stock) => stock.change_pct > 0).length}</div>
+          <div className="mt-3 text-2xl font-semibold tabular-nums text-text">{stocks.filter((stock) => (changePercent(stock) ?? 0) > 0).length}</div>
           <div className="mt-1 text-xs text-text2">Positive reported daily change</div>
         </div>
         <div className="stat-card">
           <div className="flex items-center justify-between text-xs text-text2"><span>Losers in results</span><TrendingDown size={16} className="text-down" /></div>
-          <div className="mt-3 text-2xl font-semibold tabular-nums text-text">{stocks.filter((stock) => stock.change_pct < 0).length}</div>
+          <div className="mt-3 text-2xl font-semibold tabular-nums text-text">{stocks.filter((stock) => (changePercent(stock) ?? 0) < 0).length}</div>
           <div className="mt-1 text-xs text-text2">Negative reported daily change</div>
         </div>
       </section>
@@ -163,7 +168,8 @@ export default function Screener() {
               </tr></thead>
               <tbody>
                 {filtered.map((stock) => {
-                  const up = stock.change_pct >= 0;
+                  const pct = changePercent(stock);
+                  const up = pct !== null && pct >= 0;
                   return <tr key={stock.ticker} className="border-b border-border/60 last:border-0">
                     <td className="px-5 py-4">
                       <Link to={`/stocks/${stock.ticker}`} className="group flex items-center gap-3">
@@ -172,7 +178,7 @@ export default function Screener() {
                       </Link>
                     </td>
                     <td className="px-5 py-4 text-right font-medium tabular-nums text-text">{money(stock.price, stock.currency)}</td>
-                    <td className="px-5 py-4 text-right"><span className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold tabular-nums ${up ? "bg-up/10 text-up" : "bg-down/10 text-down"}`}>{up ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}{up ? "+" : ""}{stock.change_pct.toFixed(2)}%</span></td>
+                    <td className="px-5 py-4 text-right"><span className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold tabular-nums ${up ? "bg-up/10 text-up" : "bg-down/10 text-down"}`}>{up ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}{pct === null ? "—" : `${pct > 0 ? "+" : ""}${pct.toFixed(2)}%` }</span></td>
                     <td className="px-5 py-4 text-xs text-text2">{stock.sector || "—"}</td>
                     <td className="px-5 py-4 text-right tabular-nums text-text2">{compact(stock.market_cap)}</td>
                     <td className="px-5 py-4 text-right"><Link to={`/stocks/${stock.ticker}`} className="text-xs font-semibold text-amber hover:text-amber/80">Details ↗</Link></td>
