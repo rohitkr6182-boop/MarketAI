@@ -57,7 +57,13 @@ export default function SimpleChart({
     return <div className="flex h-[390px] items-center justify-center text-sm text-text2">No valid price data is available for this range.</div>;
   }
 
-  const intraday = range.toUpperCase() === "1D" && valid.some((item) => item.date.includes("T"));
+  // Daily providers often serialize dates as midnight timestamps (e.g. 2026-10-22T00:00:00).
+  // Those are daily bars, not intraday ticks, so don't label them all as 12:00 AM.
+  const hasRealIntradayTimes = valid.some((item) => {
+    const match = item.date.match(/[T ](\\d{2}):(\\d{2})/);
+    return Boolean(match && (Number(match[1]) !== 0 || Number(match[2]) !== 0));
+  });
+  const intraday = range.toUpperCase() === "1D" && hasRealIntradayTimes;
   const rawMin = Math.min(...valid.map((item) => item.close));
   const rawMax = Math.max(...valid.map((item) => item.close));
   const spread = rawMax - rawMin || Math.max(Math.abs(rawMax) * 0.02, 1);
