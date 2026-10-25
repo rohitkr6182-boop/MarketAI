@@ -109,8 +109,8 @@ export default function SimpleChart({
         {gridValues.map((value, index) => {
           const yy = y(value);
           return <g key={index}>
-            <line x1={left} x2={width - right} y1={yy} y2={yy} stroke="#283247" strokeDasharray="4 5" />
-            <text x={left - 10} y={yy + 4} textAnchor="end" fill="#93a0ba" fontSize="12">{formatPrice(value)}</text>
+            <line x1={left} x2={width - right} y1={yy} y2={yy} stroke="#342d20" strokeDasharray="4 5" />
+            <text x={left - 10} y={yy + 4} textAnchor="end" fill="#a7a19a" fontSize="12">{formatPrice(value)}</text>
           </g>;
         })}
 
@@ -143,13 +143,13 @@ export default function SimpleChart({
         })}
 
         {hovered && hoveredX != null && hoveredY != null && <>
-          <line x1={hoveredX} x2={hoveredX} y1={top} y2={volumeBottom} stroke="#d6deeb" strokeDasharray="4 4" strokeWidth="1.2" opacity="0.8" />
-          <circle cx={hoveredX} cy={hoveredY} r="4" fill="#e7ebf3" stroke="#101827" strokeWidth="2" />
-          <rect x={tooltipX} y={tooltipY} width="280" height="88" rx="9" fill="#0b1220" stroke="#64748b" strokeWidth="1" opacity="0.98" />
-          <text x={tooltipX + 12} y={tooltipY + 17} fill="#e2e8f0" fontSize="12" fontWeight="600">{hoveredDate}</text>
-          <text x={tooltipX + 12} y={tooltipY + 36} fill="#cbd5e1" fontSize="11">Open {formatPrice(hovered.open)} · High {formatPrice(hovered.high)}</text>
+          <line x1={hoveredX} x2={hoveredX} y1={top} y2={volumeBottom} stroke="#d7a83f" strokeDasharray="4 4" strokeWidth="1.2" opacity="0.8" />
+          <circle cx={hoveredX} cy={hoveredY} r="4" fill="#d7a83f" stroke="#171717" strokeWidth="2" />
+          <rect x={tooltipX} y={tooltipY} width="280" height="88" rx="9" fill="#111111" stroke="#65532d" strokeWidth="1" opacity="0.98" />
+          <text x={tooltipX + 12} y={tooltipY + 17} fill="#f1f0eb" fontSize="12" fontWeight="600">{hoveredDate}</text>
+          <text x={tooltipX + 12} y={tooltipY + 36} fill="#d4d0c8" fontSize="11">Open {formatPrice(hovered.open)} · High {formatPrice(hovered.high)}</text>
           <text x={tooltipX + 12} y={tooltipY + 52} fill="#cbd5e1" fontSize="11">Low {formatPrice(hovered.low)} · Close {formatPrice(hovered.close)}</text>
-          <text x={tooltipX + 12} y={tooltipY + 70} fill="#94a3b8" fontSize="10">Volume {(hovered.volume ?? 0).toLocaleString("en-IN")}</text>
+          <text x={tooltipX + 12} y={tooltipY + 70} fill="#a7a19a" fontSize="10">Volume {(hovered.volume ?? 0).toLocaleString("en-IN")}</text>
         </>}
 
         <line x1={left} x2={width - right} y1={volumeBottom} y2={volumeBottom} stroke="#283247" />
